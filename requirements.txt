@@ -3,7 +3,7 @@ numpy
 torch
 opencv-contrib-python-headless
 timm
-Pillow==8.0.0
+Pillow
 torchvision
 pytorch_lightning
 matplotlib
