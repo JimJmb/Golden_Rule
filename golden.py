@@ -8,7 +8,28 @@ import pytorch_lightning as pl
 import torch.nn as nn
 import torch.nn.functional as F
 import cv2
-import urllib.request
+
+# 画像リサイズ関数
+def crop_center_img(img_path):
+    new_height = 400
+    img = Image.open(img_path)
+
+    # アスペクト比を計算して新しい幅を決定
+    width_percent = (new_height / float(img.size[1]))
+    new_width = int((float(img.size[0]) * float(width_percent)))
+
+    # 画像をリサイズ
+    resized_image = img.resize((new_width, new_height), Image.ANTIALIAS)
+
+    # センタークロップの範囲を計算
+    left = (new_width - 600) // 2
+    top = (new_height - 380) // 2
+    right = left + 600
+    bottom = top + 380
+
+    # 画像をセンタークロップ
+    cropped_image = resized_image.crop((left, top, right, bottom))
+    return cropped_image
 
 
 # タイトル
@@ -31,7 +52,8 @@ with col1:
      if upload_file is None:
         st.image(original_img,use_column_width=True)
      else:
-          st.image(upload_file,use_column_width=True)
+          crop_img = crop_center_img(upload_file)
+          st.image(crop_img,use_column_width=True)
 with col2:
      st.write('実行後')
      
@@ -39,31 +61,7 @@ with col2:
 
 if upload_file is not None:
 
-    image_bytes = upload_file.read()
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
     if st.button("処理を開始"):
-        # 入力画像の変形
-        # 新しい高さを指定
-        new_height = 400
-
-        # アスペクト比を計算して新しい幅を決定
-        width_percent = (new_height / float(img.shape[0]))
-        new_width = int((float(img.shape[1]) * float(width_percent)))
-
-        # 画像をリサイズ
-        resized_image = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-
-        # センタークロップの範囲を計算
-        left = (new_width - 600) // 2
-        top = (new_height - 380) // 2
-        right = left + 600
-        bottom = top + 380
-
-        # 画像をセンタークロップ
-        cropped_image = resized_image[top:bottom, left:right]
 
         # ここからプログレスバーを開始
         progress_bar = st.progress(0)
@@ -82,8 +80,8 @@ if upload_file is not None:
         else:
             transform = midas_transforms.small_transform
 
-
-        input_batch = transform(cropped_image).to(device)
+        crop_np = np.array(crop_img)
+        input_batch = transform(crop_np).to(device)
 
         #深度画像の推論
         with torch.no_grad():
@@ -91,7 +89,7 @@ if upload_file is not None:
 
             prediction = torch.nn.functional.interpolate(
                 prediction.unsqueeze(1),
-                size=cropped_image.shape[:2],
+                size=crop_np.shape[:2],
                 mode="bicubic",
                 align_corners=False,
             ).squeeze()
@@ -172,7 +170,7 @@ if upload_file is not None:
         if y == 0:
             st.subheader(f"黄金律構図です！")
             gold_img = Image.open('1-3.png')
-            base = cropped_image
+            base = crop_img
             base_np = np.array(base)
             gold_img_np = np.array(gold_img)
             with col2:
@@ -186,7 +184,7 @@ if upload_file is not None:
         elif y == 1:
             st.subheader(f"黄金律構図です！")
             gold_img = Image.open('2-4.png')
-            base = cropped_image
+            base = crop_img
             base_np = np.array(base)
             gold_img_np = np.array(gold_img)
             with col2:
@@ -200,5 +198,5 @@ if upload_file is not None:
         else:
             st.subheader('黄金律構図ではないようです')
             with col2:
-                 st.image(upload_file,use_column_width=True)
+                 st.image(crop_img,use_column_width=True)
 

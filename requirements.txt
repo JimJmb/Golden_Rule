@@ -1,12 +1,9 @@
 streamlit
-Pillow
+numpy
 torch
+opencv-contrib-python-headless
+timm
+Pillow==8.0.0
 torchvision
 pytorch_lightning
-opencv-python-headless
-timm
 matplotlib
-matplotlib-base
-numpy
-pytorch
-torchvision
